@@ -435,7 +435,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: { message: 'Something went wrong. Please try again.' } });
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ VentureScore running at http://localhost:${PORT}`);
-  console.log(`   Environment: ${IS_PROD ? 'production' : 'development'}`);
-});
+// Start server locally; export for Vercel serverless
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`✅ VentureScore running at http://localhost:${PORT}`);
+    console.log(`   Environment: ${IS_PROD ? 'production' : 'development'}`);
+  });
+}
+
+module.exports = app;
