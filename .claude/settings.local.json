@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node -e \"require\\('express'\\)\")",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "WebSearch",
+      "Bash(node setup-stripe.js)",
+      "Bash(node grant-lifetime.js)"
+    ]
+  }
+}

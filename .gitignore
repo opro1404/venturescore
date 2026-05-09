@@ -1,0 +1,25 @@
+# Environment — NEVER commit this
+.env
+
+# Dependencies
+node_modules/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime
+.npm
+.node_repl_history
+
+# Editor
+.vscode/
+.idea/
+
+# One-off scripts (sensitive)
+grant-lifetime.js
+setup-stripe.js

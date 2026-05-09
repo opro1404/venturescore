@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VentureScore — Business Idea Analyser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #111118;
+  --border: #2a2a35;
+  --accent: #b8ff57;
+  --accent-dim: rgba(184,255,87,0.12);
+  --accent-border: rgba(184,255,87,0.3);
+  --text: #f0f0f0;
+  --muted: #8888a0;
+  --red: #ff4444;
+  --yellow: #ffcc00;
+  --orange: #ff8833;
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Noise texture */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 1;
+}
+
+/* ═══════════════════════════════ HERO ═══════════════════════════════ */
+
+#hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  animation: drift linear infinite;
+}
+
+.orb-1 {
+  width: 700px; height: 700px;
+  background: radial-gradient(circle at 30% 30%, #1a3d10 0%, #0a1c05 60%, transparent 100%);
+  top: -250px; left: -250px;
+  animation-duration: 28s;
+  opacity: 0.5;
+}
+
+.orb-2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle at 60% 60%, #0d2b0a 0%, #060f03 60%, transparent 100%);
+  bottom: -150px; right: -150px;
+  animation-duration: 22s;
+  animation-direction: reverse;
+  opacity: 0.4;
+}
+
+.orb-3 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle at 50% 50%, #152a0c 0%, #080f04 60%, transparent 100%);
+  top: 50%; left: 40%;
+  animation-duration: 35s;
+  opacity: 0.3;
+}
+
+@keyframes drift {
+  0%,100% { transform: translate(0,0) scale(1); }
+  25%      { transform: translate(40px, 25px) scale(1.04); }
+  50%      { transform: translate(-25px, 50px) scale(0.96); }
+  75%      { transform: translate(25px, -35px) scale(1.02); }
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 680px;
+  width: 100%;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 28px;
+}
+
+.badge-dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:0.4; transform:scale(0.75); }
+}
+
+h1.brand {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(40px, 7vw, 72px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: var(--text);
+  margin-bottom: 18px;
+  width: 100%;
+  text-align: center;
+}
+
+h1.brand em { color: var(--accent); font-style: normal; }
+
+.tagline {
+  font-size: 18px;
+  color: var(--muted);
+  margin-bottom: 52px;
+  letter-spacing: 0.3px;
+}
+
+/* Input card */
+.input-card {
+  background: rgba(17,17,24,0.85);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px;
+  backdrop-filter: blur(24px);
+  text-align: left;
+}
+
+.field-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+textarea, input[type="text"], input[type="password"] {
+  width: 100%;
+  background: rgba(42,42,53,0.45);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+textarea { resize: vertical; min-height: 130px; }
+
+textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(184,255,87,0.08);
+}
+
+textarea::placeholder, input::placeholder { color: var(--muted); }
+
+.field-gap { margin-top: 18px; }
+
+/* API key row */
+.api-row {
+  margin-top: 18px;
+}
+
+.api-row-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.api-status {
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.api-status.none { color: var(--muted); }
+
+/* CTA */
+.cta {
+  width: 100%;
+  margin-top: 26px;
+  background: var(--accent);
+  color: #0a0a0f;
+  border: none;
+  border-radius: 12px;
+  padding: 19px 32px;
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.cta:hover { transform: translateY(-2px); box-shadow: 0 10px 45px rgba(184,255,87,0.35); }
+.cta:active { transform: translateY(0); }
+.cta:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ═══════════════════════════════ LOADING ═══════════════════════════════ */
+
+#loading {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 500;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+#loading.on { display: flex; }
+
+.loading-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 44px;
+}
+
+.loading-msg {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(28px, 5vw, 50px);
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  min-height: 64px;
+  transition: opacity 0.3s ease;
+  margin-bottom: 52px;
+}
+
+.progress-track {
+  width: min(420px, 90vw);
+  height: 2px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 18px rgba(184,255,87,0.7);
+  transition: width 0.5s ease;
+}
+
+.loading-note {
+  margin-top: 22px;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════ REPORT ═══════════════════════════════ */
+
+#report {
+  display: none;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 20px 100px;
+}
+
+#report.on { display: block; }
+
+/* Card base */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  opacity: 0;
+  transform: translateY(22px);
+  animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+@keyframes rise { to { opacity:1; transform:translateY(0); } }
+
+.sec-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+.sec-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+/* mb helpers */
+.mb16 { margin-bottom: 16px; }
+.mb32 { margin-bottom: 32px; }
+
+/* VERDICT */
+.verdict-wrap {
+  border-radius: 18px;
+  padding: 44px 36px;
+  text-align: center;
+  margin-bottom: 28px;
+  border: 2px solid;
+}
+
+.verdict-wrap.build { background: rgba(184,255,87,0.07); border-color: var(--accent); }
+.verdict-wrap.kill  { background: rgba(255,68,68,0.07);  border-color: var(--red); }
+
+.verdict-eye {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.verdict-wrap.build .verdict-eye { color: var(--accent); }
+.verdict-wrap.kill  .verdict-eye { color: var(--red); }
+
+.verdict-text {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(38px, 8vw, 70px);
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 18px;
+}
+
+.verdict-wrap.build .verdict-text { color: var(--accent); }
+.verdict-wrap.kill  .verdict-text { color: var(--red); }
+
+.verdict-reason {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* SCORES GRID */
+.scores-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.score-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 30px 20px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(22px);
+  animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+.score-ring {
+  position: relative;
+  width: 124px;
+  height: 124px;
+  margin: 0 auto 16px;
+}
+
+.score-ring svg { transform: rotate(-90deg); }
+
+.ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+
+.ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 351.858;
+  stroke-dashoffset: 351.858;
+  transition: stroke-dashoffset 1.6s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.score-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.score-unit {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.score-lbl {
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* TWO COL */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Lists */
+.check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+
+.check-li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.check-ico {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.check-ico.g { background: rgba(184,255,87,0.15); color: var(--accent); }
+.check-ico.b { background: rgba(255,68,68,0.15);  color: var(--red); }
+
+/* COMPETITORS */
+.comp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+  gap: 14px;
+}
+
+.comp-card {
+  background: rgba(42,42,53,0.4);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.comp-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.comp-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 18px;
+}
+
+.threat-lbl {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.threat-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.threat-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 4px;
+  transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+}
+
+.threat-score {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* THREATS */
+.threats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+  gap: 14px;
+}
+
+.thr-card {
+  border-radius: 12px;
+  padding: 22px;
+  border-left: 3px solid;
+}
+
+.thr-card.low    { background: rgba(255,204,0,0.06);  border-color: var(--yellow); }
+.thr-card.medium { background: rgba(255,136,51,0.06); border-color: var(--orange); }
+.thr-card.high   { background: rgba(255,68,68,0.06);  border-color: var(--red); }
+
+.thr-sev {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.thr-card.low .thr-sev    { color: var(--yellow); }
+.thr-card.medium .thr-sev { color: var(--orange); }
+.thr-card.high .thr-sev   { color: var(--red); }
+
+.thr-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.thr-desc { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+/* ICP */
+.icp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
+  gap: 14px;
+}
+
+.icp-item {
+  background: rgba(42,42,53,0.4);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.icp-item-lbl {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.icp-item-val { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.45; }
+
+/* USPs */
+.usp-list { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+
+.usp-item { display: flex; align-items: flex-start; gap: 18px; }
+
+.usp-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  min-width: 44px;
+}
+
+.usp-text { font-size: 15px; color: var(--text); line-height: 1.6; padding-top: 8px; }
+
+/* CHANNELS accordion */
+.channels { display: flex; flex-direction: column; gap: 8px; }
+
+.ch-item {
+  background: rgba(42,42,53,0.4);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ch-head {
+  padding: 17px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.ch-head:hover { background: rgba(42,42,53,0.75); }
+
+.ch-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ch-arrow {
+  color: var(--muted);
+  font-size: 18px;
+  transition: transform 0.3s;
+  line-height: 1;
+}
+
+.ch-item.open .ch-arrow { transform: rotate(180deg); }
+
+.ch-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+
+.ch-body-inner { padding: 0 20px 20px; }
+
+.ch-why { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+.ch-idea {
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.ch-idea-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 5px;
+}
+
+/* PRICING */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 16px;
+}
+
+.price-card {
+  background: rgba(42,42,53,0.4);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 26px 20px;
+  text-align: center;
+}
+
+.price-card.mid {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+}
+
+.price-tier {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.price-card.mid .price-tier { color: var(--accent); }
+
+.price-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 14px;
+  line-height: 1;
+}
+
+.price-card.mid .price-val { color: var(--accent); }
+
+.price-desc { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+/* COSTS TABLE */
+.costs-wrap { overflow-x: auto; }
+
+.costs-tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.costs-tbl th {
+  text-align: left;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.costs-tbl td {
+  padding: 14px 16px 14px 0;
+  border-bottom: 1px solid rgba(42,42,53,0.5);
+  font-size: 14px;
+  vertical-align: top;
+}
+
+.costs-tbl tr:last-child td { border-bottom: none; }
+.costs-tbl td:nth-child(2) { color: var(--accent); font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap; }
+.costs-tbl td:nth-child(3) { color: var(--muted); font-size: 13px; }
+
+/* BODY text */
+.body-txt { font-size: 15px; line-height: 1.75; color: var(--text); }
+
+/* BOTTOM CTA */
+.bottom-row {
+  text-align: center;
+  margin-top: 70px;
+}
+
+.ghost-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 12px;
+  padding: 16px 44px;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+
+.ghost-btn:hover { background: var(--accent); color: #0a0a0f; }
+
+/* ERROR */
+.err-wrap {
+  max-width: 520px;
+  margin: 60px auto;
+  background: rgba(255,68,68,0.06);
+  border: 1px solid rgba(255,68,68,0.25);
+  border-radius: 16px;
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.err-icon { font-size: 42px; margin-bottom: 18px; }
+.err-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; color: var(--red); margin-bottom: 14px; }
+.err-msg { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+/* RESPONSIVE */
+@media (max-width: 800px) {
+  .two-col      { grid-template-columns: 1fr; }
+  .scores-grid  { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .icp-grid     { grid-template-columns: 1fr 1fr; }
+  .input-card   { padding: 22px; }
+  .verdict-wrap { padding: 32px 20px; }
+}
+
+@media (max-width: 480px) {
+  .icp-grid { grid-template-columns: 1fr; }
+  h1.brand  { letter-spacing: -2px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<div id="hero">
+  <div class="mesh">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="hero-inner">
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:24px;">
+      <a href="/" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#f0f0f0;text-decoration:none;">Venture<em style="color:#b8ff57;font-style:normal;">Score</em></a>
+      <div id="user-bar" style="display:flex;align-items:center;gap:16px;">
+        <span id="plan-badge" style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;border-radius:100px;border:1px solid #2a2a35;color:#8888a0;"></span>
+        <span id="user-email" style="font-size:13px;color:#8888a0;"></span>
+        <a href="#" onclick="signOutAnalysis();return false;" style="font-size:12px;color:#8888a0;text-decoration:underline;">Sign out</a>
+      </div>
+    </div>
+    <div class="badge"><div class="badge-dot"></div>AI Intelligence Engine</div>
+    <h1 class="brand">Venture<em>Score</em></h1>
+    <p class="tagline">Brutal honesty. Full picture. No fluff.</p>
+
+    <div class="input-card">
+      <label class="field-label">Your Business Idea</label>
+      <textarea id="idea" placeholder="Describe your business idea in as much detail as you like — what problem does it solve, who buys it, how does it make money?"></textarea>
+
+      <div class="field-gap">
+        <label class="field-label">About You <span style="opacity:.5;text-transform:none;letter-spacing:0">(optional — helps us assess your unfair advantage)</span></label>
+        <input type="text" id="background" placeholder="e.g. 10 years in fintech, prior exit, deep network in healthcare…">
+      </div>
+
+      <button class="cta" id="analyse-btn" onclick="run()">Analyse My Idea →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOADING ═══ -->
+<div id="loading">
+  <div class="loading-eyebrow">VentureScore Intelligence</div>
+  <div class="loading-msg" id="loading-msg">Scanning the market…</div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="loading-note">This takes 20–40 seconds — worth it.</div>
+</div>
+
+<!-- ═══ REPORT ═══ -->
+<div id="report"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ── Supabase auth guard ───────────────────────────────────────
+const _supa = supabase.createClient(
+  'https://ylerxxgdzrosamkydbmf.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZXJ4eGdkenJvc2Fta3lkYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzEyODIsImV4cCI6MjA5MzgwNzI4Mn0.0b4RIIKTgVSnH3wAlsk3k8SJk3X8Wib1Bq2x6U4SiUQ'
+);
+
+let _session = null;
+
+async function initAnalysisAuth() {
+  const { data: { session } } = await _supa.auth.getSession();
+  if (!session) { window.location.href = '/?auth=login'; return; }
+  _session = session;
+
+  // Show user info
+  document.getElementById('user-email').textContent = session.user.email;
+
+  // Load plan info
+  const res = await fetch('/api/me', {
+    headers: { 'Authorization': 'Bearer ' + session.access_token }
+  });
+  if (res.ok) {
+    const { profile } = await res.json();
+    const planMap = { free:'Free', one_time:'One-Time', monthly:'Monthly', lifetime:'Lifetime ♾' };
+    const badge = document.getElementById('plan-badge');
+    badge.textContent = planMap[profile?.plan] || 'Free';
+    if (profile?.plan === 'lifetime') { badge.style.color='#b8ff57'; badge.style.borderColor='rgba(184,255,87,0.3)'; }
+    else if (profile?.plan === 'monthly') { badge.style.color='#b8ff57'; badge.style.borderColor='rgba(184,255,87,0.3)'; }
+  }
+}
+
+async function signOutAnalysis() {
+  await _supa.auth.signOut();
+  window.location.href = '/';
+}
+
+initAnalysisAuth();
+</script>
+
+<script>
+
+// ── Loading state ────────────────────────────────────────────────
+const MSGS = [
+  'Scanning the market…',
+  'Identifying your threats…',
+  'Profiling your ideal customer…',
+  'Calculating survival odds…',
+  'Sizing the competition…',
+  'Building your report…',
+  'Almost there…',
+];
+
+let _msgTimer, _progTimer, _prog = 0;
+
+function startLoader() {
+  document.getElementById('hero').style.display = 'none';
+  document.getElementById('loading').classList.add('on');
+  _prog = 0;
+  let mi = 0;
+  const msgEl = document.getElementById('loading-msg');
+  const bar = document.getElementById('progress-fill');
+  msgEl.textContent = MSGS[0];
+  _msgTimer = setInterval(() => {
+    mi = (mi + 1) % MSGS.length;
+    msgEl.style.opacity = '0';
+    setTimeout(() => { msgEl.textContent = MSGS[mi]; msgEl.style.opacity = '1'; }, 280);
+  }, 3200);
+  _progTimer = setInterval(() => {
+    _prog = Math.min(90, _prog + Math.random() * 7 + 1);
+    bar.style.width = _prog + '%';
+  }, 600);
+}
+
+function stopLoader() {
+  clearInterval(_msgTimer);
+  clearInterval(_progTimer);
+  document.getElementById('progress-fill').style.width = '100%';
+  setTimeout(() => document.getElementById('loading').classList.remove('on'), 400);
+}
+
+// ── Main entry ────────────────────────────────────────────────────
+async function run() {
+  const idea = document.getElementById('idea').value.trim();
+  const bg   = document.getElementById('background').value.trim();
+
+  if (!idea) { flash('Please describe your business idea first.'); return; }
+
+  document.getElementById('analyse-btn').disabled = true;
+  startLoader();
+
+  const userContent = bg
+    ? `Business idea:\n${idea}\n\nFounder background:\n${bg}`
+    : `Business idea:\n${idea}`;
+
+  const schema = `{
+  "summary": "2-3 sentence overview",
+  "whats_good": ["strength 1","strength 2","strength 3"],
+  "whats_bad": ["weakness 1","weakness 2","weakness 3"],
+  "market_fit": "paragraph on product-market fit",
+  "competitors": [{"name":"","threat_level":7,"description":""}],
+  "pricing_options": [{"name":"","price":"","description":""}],
+  "survival_score": 0,
+  "originality_score": 0,
+  "futureproof_score": 0,
+  "biggest_threats": [{"title":"","description":"","severity":"high"}],
+  "potential_costs": [{"category":"","estimated_monthly_cost":"","notes":""}],
+  "marketing_channels": [{"channel":"","why_it_works":"","starter_idea":""}],
+  "icp": {"who":"","age_range":"","pain_point":"","where_to_find_them":""},
+  "usps": ["usp 1","usp 2","usp 3"],
+  "verdict": {"decision":"BUILD THIS NOW","reason":""},
+  "business_timeframe": [
+    {"phase":"Week 1–2","title":"","focus":"","tasks":["",""],"milestone":""},
+    {"phase":"Month 1","title":"","focus":"","tasks":["",""],"milestone":""},
+    {"phase":"Month 2–3","title":"","focus":"","tasks":["",""],"milestone":""},
+    {"phase":"Month 4–6","title":"","focus":"","tasks":["",""],"milestone":""},
+    {"phase":"Month 6–12","title":"","focus":"","tasks":["",""],"milestone":""}
+  ]
+}`;
+
+  try {
+    const token = _session?.access_token;
+    const res = await fetch('/api/analyse', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': token ? 'Bearer ' + token : '',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4096,
+        system: 'You are a brutally honest startup analyst. When given a business idea, you analyse it with the cold logic of a VC who has seen 10,000 pitches. You are direct, specific, and never vague. Always return valid JSON only, no markdown, no backticks, no preamble.',
+        messages: [{
+          role: 'user',
+          content: `${userContent}\n\nReturn ONLY a JSON object matching this schema exactly (fill in all fields with real analysis):\n${schema}\n\nRules:\n- whats_good: 3-5 items\n- whats_bad: 3-5 items\n- competitors: exactly 4 items\n- pricing_options: exactly 3 tiers\n- biggest_threats: exactly 3 items, severity must be "low", "medium", or "high"\n- potential_costs: 5-8 realistic cost categories\n- marketing_channels: exactly 5 items\n- verdict.decision: ONLY "BUILD THIS NOW" or "KILL THIS IDEA"\n- All scores 0-100\n- business_timeframe: exactly 5 phases, each with realistic phase label, title, focus sentence, 2-4 tasks array, and one milestone string\n- Return raw JSON only.`
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const msg = errData?.error?.message || `API returned ${res.status}`;
+      if (msg === 'UPGRADE_REQUIRED') throw new Error('You need an active plan to run analyses. Please upgrade on the pricing page.');
+      if (msg === 'PLAN_EXPIRED')     throw new Error('Your monthly plan has expired. Please renew on the pricing page.');
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    const raw = (data?.content?.[0]?.text || '').trim();
+
+    let report;
+    try { report = JSON.parse(raw); }
+    catch (_) {
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error('Could not parse response as JSON. Try again.');
+      report = JSON.parse(m[0]);
+    }
+
+    stopLoader();
+    render(report);
+
+  } catch (err) {
+    stopLoader();
+    showError(err.message);
+    document.getElementById('hero').style.display = 'flex';
+    document.getElementById('analyse-btn').disabled = false;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function render(r) {
+  const el = document.getElementById('report');
+  el.classList.add('on');
+  el.innerHTML = buildHTML(r);
+
+  // Score circles
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      animScore('sc-survival',    r.survival_score);
+      animScore('sc-originality', r.originality_score);
+      animScore('sc-futureproof', r.futureproof_score);
+    }, 150);
+
+    // Threat bars
+    setTimeout(() => {
+      el.querySelectorAll('.threat-bar[data-lvl]').forEach(bar => {
+        const lvl = parseInt(bar.dataset.lvl, 10);
+        bar.style.width = (lvl / 10 * 100) + '%';
+        bar.style.background = lvl >= 8 ? 'var(--red)' : lvl >= 5 ? 'var(--orange)' : 'var(--yellow)';
+      });
+    }, 500);
+  });
+
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Init Pivot Engine once report + profile are both ready
+  setTimeout(async () => {
+    let plan = 'free';
+    if (_session) {
+      const meRes = await fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + _session.access_token } });
+      if (meRes.ok) { const { profile } = await meRes.json(); plan = profile?.plan || 'free'; }
+    }
+    initPivotEngine(r, document.getElementById('idea').value.trim(), document.getElementById('background').value.trim(), plan);
+  }, 500);
+}
+
+function animScore(id, val) {
+  const circ = 351.858;
+  const ring = document.getElementById(id);
+  const num  = document.getElementById(id + '-n');
+  if (!ring || !num) return;
+
+  const offset = circ - (val / 100) * circ;
+  ring.style.strokeDashoffset = offset;
+  if (val < 40) ring.style.stroke = 'var(--red)';
+  else if (val < 65) ring.style.stroke = 'var(--orange)';
+
+  const start = performance.now();
+  const dur = 1600;
+  function step(now) {
+    const p = Math.min((now - start) / dur, 1);
+    num.textContent = Math.round(p * val);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── HTML builder ──────────────────────────────────────────────────
+function buildHTML(r) {
+  const isKill = (r.verdict?.decision || '').includes('KILL');
+  const vc = isKill ? 'kill' : 'build';
+  const d = (n, delay) => `animation-delay:${delay}s`;
+
+  return `
+    <!-- VERDICT -->
+    <div class="verdict-wrap ${vc} card mb32" style="${d(0,0.05)}">
+      <div class="verdict-eye">The Verdict</div>
+      <div class="verdict-text">${e(r.verdict?.decision || 'N/A')}</div>
+      <div class="verdict-reason">${e(r.verdict?.reason || '')}</div>
+    </div>
+
+    <!-- SCORES -->
+    <div class="scores-grid mb32">
+      ${scoreCard('sc-survival',    r.survival_score,    'Survival Score',    0.15)}
+      ${scoreCard('sc-originality', r.originality_score, 'Originality Score', 0.25)}
+      ${scoreCard('sc-futureproof', r.futureproof_score, 'Futureproof Score', 0.35)}
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="card mb16" style="${d(0,0.45)}">
+      <div class="sec-label">Executive Summary</div>
+      <div class="body-txt">${e(r.summary)}</div>
+    </div>
+
+    <!-- GOOD / BAD -->
+    <div class="two-col mb16">
+      <div class="card" style="${d(0,0.55)}">
+        <div class="sec-label">What's Working For You</div>
+        <ul class="check-list">
+          ${(r.whats_good||[]).map(s=>`<li class="check-li"><div class="check-ico g">✓</div>${e(s)}</li>`).join('')}
+        </ul>
+      </div>
+      <div class="card" style="${d(0,0.65)}">
+        <div class="sec-label">What's Working Against You</div>
+        <ul class="check-list">
+          ${(r.whats_bad||[]).map(s=>`<li class="check-li"><div class="check-ico b">✕</div>${e(s)}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+
+    <!-- MARKET FIT -->
+    <div class="card mb16" style="${d(0,0.75)}">
+      <div class="sec-label">Product–Market Fit</div>
+      <div class="body-txt">${e(r.market_fit)}</div>
+    </div>
+
+    <!-- COMPETITORS -->
+    <div class="card mb16" style="${d(0,0.85)}">
+      <div class="sec-label">Competitive Landscape</div>
+      <div class="comp-grid">
+        ${(r.competitors||[]).map(c=>`
+          <div class="comp-card">
+            <div class="comp-name">${e(c.name)}</div>
+            <div class="comp-desc">${e(c.description)}</div>
+            <div class="threat-lbl">Threat Level</div>
+            <div class="threat-track"><div class="threat-bar" data-lvl="${c.threat_level}"></div></div>
+            <div class="threat-score" style="color:${c.threat_level>=8?'var(--red)':c.threat_level>=5?'var(--orange)':'var(--yellow)'}">${c.threat_level}/10</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- BIGGEST THREATS -->
+    <div class="card mb16" style="${d(0,0.95)}">
+      <div class="sec-label">Biggest Threats</div>
+      <div class="threats-grid">
+        ${(r.biggest_threats||[]).map(t=>`
+          <div class="thr-card ${t.severity||'medium'}">
+            <div class="thr-sev">${e(t.severity)} severity</div>
+            <div class="thr-title">${e(t.title)}</div>
+            <div class="thr-desc">${e(t.description)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- ICP -->
+    <div class="card mb16" style="${d(0,1.05)}">
+      <div class="sec-label">Ideal Customer Profile</div>
+      <div class="icp-grid">
+        <div class="icp-item"><div class="icp-item-lbl">Who They Are</div><div class="icp-item-val">${e(r.icp?.who)}</div></div>
+        <div class="icp-item"><div class="icp-item-lbl">Age Range</div><div class="icp-item-val">${e(r.icp?.age_range)}</div></div>
+        <div class="icp-item"><div class="icp-item-lbl">Core Pain Point</div><div class="icp-item-val">${e(r.icp?.pain_point)}</div></div>
+        <div class="icp-item"><div class="icp-item-lbl">Where to Find Them</div><div class="icp-item-val">${e(r.icp?.where_to_find_them)}</div></div>
+      </div>
+    </div>
+
+    <!-- USPs -->
+    <div class="card mb16" style="${d(0,1.15)}">
+      <div class="sec-label">Unique Selling Points</div>
+      <ul class="usp-list">
+        ${(r.usps||[]).map((u,i)=>`
+          <li class="usp-item">
+            <div class="usp-num">0${i+1}</div>
+            <div class="usp-text">${e(u)}</div>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+
+    <!-- MARKETING CHANNELS -->
+    <div class="card mb16" style="${d(0,1.25)}">
+      <div class="sec-label">Marketing Channels</div>
+      <div class="channels">
+        ${(r.marketing_channels||[]).map((ch,i)=>`
+          <div class="ch-item" id="ch${i}">
+            <div class="ch-head" onclick="toggleCh(${i})">
+              <div class="ch-name">${e(ch.channel)}</div>
+              <div class="ch-arrow">▾</div>
+            </div>
+            <div class="ch-body" id="chb${i}">
+              <div class="ch-body-inner">
+                <div class="ch-why">${e(ch.why_it_works)}</div>
+                <div class="ch-idea">
+                  <div class="ch-idea-lbl">Starter Idea</div>
+                  ${e(ch.starter_idea)}
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- PRICING -->
+    <div class="card mb16" style="${d(0,1.35)}">
+      <div class="sec-label">Pricing Strategy</div>
+      <div class="pricing-grid">
+        ${(r.pricing_options||[]).map((p,i)=>`
+          <div class="price-card ${i===1?'mid':''}">
+            <div class="price-tier">${e(p.name)}</div>
+            <div class="price-val">${e(p.price)}</div>
+            <div class="price-desc">${e(p.description)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- COSTS -->
+    <div class="card mb16" style="${d(0,1.45)}">
+      <div class="sec-label">Estimated Monthly Costs</div>
+      <div class="costs-wrap">
+        <table class="costs-tbl">
+          <thead><tr><th>Category</th><th>Est. Monthly</th><th>Notes</th></tr></thead>
+          <tbody>
+            ${(r.potential_costs||[]).map(c=>`
+              <tr>
+                <td>${e(c.category)}</td>
+                <td>${e(c.estimated_monthly_cost)}</td>
+                <td>${e(c.notes)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BUSINESS TIMEFRAME -->
+    <div class="card mb16" style="${d(0,1.55)}">
+      <div class="sec-label">Business Launch Timeframe</div>
+      <div style="position:relative;padding-left:28px;">
+        <div style="position:absolute;left:10px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--accent),rgba(184,255,87,0.1));border-radius:2px;"></div>
+        <div style="display:flex;flex-direction:column;gap:0;">
+          ${(r.business_timeframe||[]).map((ph,i)=>`
+            <div style="position:relative;padding:0 0 32px 24px;">
+              <div style="position:absolute;left:-6px;top:4px;width:14px;height:14px;border-radius:50%;background:${i===0?'var(--accent)':'var(--bg-card)'};border:2px solid var(--accent);box-shadow:${i===0?'0 0 12px rgba(184,255,87,0.5)':'none'};"></div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+                <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:100px;padding:3px 12px;">${e(ph.phase)}</span>
+                <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);">${e(ph.title)}</span>
+              </div>
+              <div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.5;">${e(ph.focus)}</div>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+                ${(ph.tasks||[]).map(t=>`
+                  <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);">
+                    <span style="color:var(--accent);font-weight:700;flex-shrink:0;margin-top:1px;">→</span>${e(t)}
+                  </div>`).join('')}
+              </div>
+              <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(42,42,53,0.5);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted);">
+                <span style="color:var(--accent);">🎯</span> ${e(ph.milestone)}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- PIVOT ENGINE -->
+    <div id="pivot-section" style="margin-top:16px;animation-delay:1.6s;opacity:0;transform:translateY(22px);animation:rise 0.55s cubic-bezier(0.22,1,0.36,1) 1.6s forwards;">
+      <div style="background:linear-gradient(135deg,rgba(184,255,87,0.06) 0%,rgba(184,255,87,0.02) 100%);border:2px solid rgba(184,255,87,0.25);border-radius:20px;padding:36px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:12px;">🔄</div>
+        <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;">The Pivot Engine</div>
+        <div id="pivot-tagline" style="font-size:15px;color:var(--muted);margin-bottom:28px;line-height:1.6;">Not happy with the verdict? Let our AI rebuild your idea from the ground up — keeping your core insight, fixing everything that's broken.</div>
+        <div id="pivot-limit-note" style="font-size:12px;color:var(--muted);margin-bottom:16px;"></div>
+        <button id="pivot-btn" onclick="runPivot()" style="background:var(--accent);color:#0a0a0f;border:none;border-radius:12px;padding:16px 40px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.boxShadow='0 8px 30px rgba(184,255,87,0.4)'" onmouseout="this.style.boxShadow='none'">
+          Generate Pivots →
+        </button>
+      </div>
+
+      <!-- Pivot results -->
+      <div id="pivot-results" style="margin-top:16px;display:flex;flex-direction:column;gap:14px;"></div>
+
+      <!-- Generate more (monthly/lifetime only) -->
+      <div id="pivot-more-wrap" style="display:none;text-align:center;margin-top:16px;">
+        <button onclick="runPivot()" style="background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:12px;padding:14px 32px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='transparent'">
+          Generate 3 More Pivots →
+        </button>
+      </div>
+    </div>
+
+    <!-- MARKETING ENGINE -->
+    <div id="mkt-section" style="margin-top:16px;animation-delay:1.7s;opacity:0;transform:translateY(22px);animation:rise 0.55s cubic-bezier(0.22,1,0.36,1) 1.7s forwards;">
+      <div style="background:linear-gradient(135deg,rgba(184,255,87,0.04) 0%,rgba(42,42,53,0.3) 100%);border:2px solid var(--border);border-radius:20px;padding:36px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:12px;">📣</div>
+        <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;">The Marketing Engine</div>
+        <div style="font-size:15px;color:var(--muted);margin-bottom:28px;line-height:1.6;max-width:500px;margin-left:auto;margin-right:auto;">Takes your 5 marketing channels and builds a complete 90-day marketing plan for each — actions, budget, KPIs, and content ideas.</div>
+        <button id="mkt-btn" onclick="runMarketing()" style="background:var(--accent);color:#0a0a0f;border:none;border-radius:12px;padding:16px 40px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.boxShadow='0 8px 30px rgba(184,255,87,0.4)'" onmouseout="this.style.boxShadow='none'">
+          Build My Marketing Plan →
+        </button>
+      </div>
+      <div id="mkt-results" style="margin-top:16px;display:flex;flex-direction:column;gap:14px;"></div>
+    </div>
+
+    <!-- BOTTOM CTA -->
+    <div class="bottom-row" style="margin-top:40px;">
+      <button class="ghost-btn" onclick="reset()">← Analyse Another Idea</button>
+    </div>
+  `;
+}
+
+function scoreCard(id, val, label, delay) {
+  const circ = 351.858;
+  return `
+    <div class="score-card" style="animation-delay:${delay}s">
+      <div class="score-ring">
+        <svg width="124" height="124" viewBox="0 0 124 124">
+          <circle class="ring-bg"   cx="62" cy="62" r="56"/>
+          <circle class="ring-fill" cx="62" cy="62" r="56" id="${id}"/>
+        </svg>
+        <div class="score-num">
+          <div class="score-val" id="${id}-n">0</div>
+          <div class="score-unit">/100</div>
+        </div>
+      </div>
+      <div class="score-lbl">${label}</div>
+    </div>
+  `;
+}
+
+// ── Accordion ─────────────────────────────────────────────────────
+function toggleCh(i) {
+  const item = document.getElementById('ch'  + i);
+  const body = document.getElementById('chb' + i);
+  const open = item.classList.toggle('open');
+  body.style.maxHeight = open ? body.scrollHeight + 'px' : '0';
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function e(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function flash(msg) {
+  alert(msg);
+}
+
+function showError(msg) {
+  const el = document.getElementById('report');
+  el.classList.add('on');
+  el.innerHTML = `
+    <div class="err-wrap">
+      <div class="err-icon">⚠</div>
+      <div class="err-title">Analysis Failed</div>
+      <div class="err-msg">${e(msg)}<br><br>Check your API key and try again.</div>
+    </div>
+    <div class="bottom-row"><button class="ghost-btn" onclick="reset()">← Try Again</button></div>
+  `;
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function reset() {
+  document.getElementById('report').classList.remove('on');
+  document.getElementById('report').innerHTML = '';
+  document.getElementById('hero').style.display = 'flex';
+  document.getElementById('analyse-btn').disabled = false;
+  _currentReport = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── PIVOT ENGINE ──────────────────────────────────────────────
+let _currentReport   = null;
+let _currentIdea     = '';
+let _currentBg       = '';
+let _userPlan        = 'free';
+let _pivotsGenerated = 0;
+
+function initPivotEngine(report, idea, bg, plan) {
+  _currentReport   = report;
+  _currentIdea     = idea;
+  _currentBg       = bg;
+  _userPlan        = plan;
+  _pivotsGenerated = 0;
+
+  const noteEl = document.getElementById('pivot-limit-note');
+  const btnEl  = document.getElementById('pivot-btn');
+  const tagEl  = document.getElementById('pivot-tagline');
+
+  if (plan === 'one_time') {
+    noteEl.textContent = '⚡ One-time plan includes 1 pivot. Upgrade to Monthly or Lifetime for unlimited.';
+    btnEl.textContent  = 'Generate My Pivot →';
+  } else {
+    noteEl.textContent = '♾ Unlimited pivots — generate as many as you need.';
+    btnEl.textContent  = 'Generate 3 Pivots →';
+  }
+
+  if (report.verdict?.decision === 'KILL THIS IDEA') {
+    tagEl.textContent = "Your idea was killed. The Pivot Engine will rebuild it — same insight, new angle, better odds.";
+  }
+}
+
+async function runPivot() {
+  const btn = document.getElementById('pivot-btn');
+  const moreWrap = document.getElementById('pivot-more-wrap');
+
+  btn.textContent = 'Generating pivots…';
+  btn.disabled    = true;
+  if (moreWrap) moreWrap.style.display = 'none';
+
+  try {
+    const token = _session?.access_token;
+    const res = await fetch('/api/pivot', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': token ? 'Bearer ' + token : '',
+      },
+      body: JSON.stringify({
+        idea:       _currentIdea,
+        background: _currentBg,
+        report:     _currentReport,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data?.error?.message;
+      if (msg === 'UPGRADE_REQUIRED' || msg === 'PIVOT_LIMIT_REACHED') {
+        document.getElementById('pivot-results').innerHTML = `
+          <div style="background:rgba(255,68,68,0.06);border:1px solid rgba(255,68,68,0.2);border-radius:14px;padding:28px;text-align:center;">
+            <div style="font-size:28px;margin-bottom:12px;">🔒</div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#f0f0f0;margin-bottom:8px;">Pivot limit reached</div>
+            <div style="font-size:14px;color:#8888a0;margin-bottom:20px;">You've used your one free pivot. Upgrade to Monthly or Lifetime for unlimited pivots.</div>
+            <a href="/#pricing" style="display:inline-block;background:var(--accent);color:#0a0a0f;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">View Plans →</a>
+          </div>`;
+      } else {
+        throw new Error(msg || 'Failed to generate pivots.');
+      }
+      btn.style.display = 'none';
+      return;
+    }
+
+    const { pivots, plan } = data;
+    _pivotsGenerated += pivots.length;
+
+    renderPivots(pivots);
+
+    // One-time: hide button after use
+    if (plan === 'one_time') {
+      btn.style.display = 'none';
+    } else {
+      // Monthly/lifetime: show "generate more" button
+      btn.style.display = 'none';
+      if (moreWrap) moreWrap.style.display = 'block';
+    }
+
+  } catch (err) {
+    document.getElementById('pivot-results').innerHTML += `
+      <div style="color:#ff4444;font-size:14px;padding:16px;text-align:center;">Failed: ${e(err.message)}</div>`;
+    btn.textContent = 'Try Again →';
+    btn.disabled    = false;
+  }
+}
+
+function renderPivots(pivots) {
+  const container = document.getElementById('pivot-results');
+
+  pivots.forEach((p, i) => {
+    const isKill  = p.verdict === 'KILL THIS IDEA';
+    const isBuild = p.verdict === 'BUILD THIS NOW';
+    const verdictColor = isBuild ? 'var(--accent)' : isKill ? 'var(--red)' : 'var(--orange)';
+    const verdictBg    = isBuild ? 'rgba(184,255,87,0.08)' : isKill ? 'rgba(255,68,68,0.08)' : 'rgba(255,136,51,0.08)';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'opacity:0;transform:translateY(18px);transition:all 0.5s cubic-bezier(0.22,1,0.36,1);';
+    card.innerHTML = `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+        <!-- Header -->
+        <div style="padding:24px 28px 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <div>
+              <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Pivot ${_pivotsGenerated - pivots.length + i + 1}</div>
+              <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);">${e(p.name)}</div>
+            </div>
+            <div style="background:${verdictBg};border:1px solid ${verdictColor}33;border-radius:8px;padding:8px 14px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:${verdictColor};white-space:nowrap;">${e(p.verdict)}</div>
+          </div>
+          <div style="font-size:15px;color:var(--text);line-height:1.6;margin-bottom:20px;">${e(p.concept)}</div>
+        </div>
+
+        <!-- Scores -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+          ${pivotScorePill('Survival',    p.survival_score)}
+          ${pivotScorePill('Originality', p.originality_score, true)}
+          ${pivotScorePill('Futureproof', p.futureproof_score)}
+        </div>
+
+        <!-- Detail -->
+        <div style="padding:20px 28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Key Change</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.55;">${e(p.key_change)}</div>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Why It Scores Better</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.55;">${e(p.why_better)}</div>
+          </div>
+        </div>
+      </div>`;
+
+    container.appendChild(card);
+
+    // Animate in with stagger
+    setTimeout(() => {
+      card.style.opacity   = '1';
+      card.style.transform = 'translateY(0)';
+    }, i * 150);
+  });
+
+  // Scroll to first new pivot
+  setTimeout(() => {
+    container.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 100);
+}
+
+function pivotScorePill(label, score, bordered) {
+  const color = score >= 70 ? 'var(--accent)' : score >= 50 ? 'var(--orange)' : 'var(--red)';
+  const border = bordered ? 'border-left:1px solid var(--border);border-right:1px solid var(--border);' : '';
+  return `
+    <div style="padding:16px;text-align:center;${border}">
+      <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:${color};line-height:1;">${score}</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:4px;">${label}</div>
+    </div>`;
+}
+
+// ── MARKETING ENGINE ──────────────────────────────────────────
+async function runMarketing() {
+  const btn = document.getElementById('mkt-btn');
+  btn.textContent = 'Building your plan…';
+  btn.disabled    = true;
+
+  try {
+    const token = _session?.access_token;
+    const res = await fetch('/api/marketing', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': token ? 'Bearer ' + token : '',
+      },
+      body: JSON.stringify({
+        idea:     _currentIdea,
+        channels: _currentReport?.marketing_channels || [],
+        icp:      _currentReport?.icp || {},
+        usps:     _currentReport?.usps || [],
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data?.error?.message;
+      if (msg === 'UPGRADE_REQUIRED') {
+        document.getElementById('mkt-results').innerHTML = `
+          <div style="background:rgba(255,68,68,0.06);border:1px solid rgba(255,68,68,0.2);border-radius:14px;padding:28px;text-align:center;">
+            <div style="font-size:28px;margin-bottom:12px;">🔒</div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#f0f0f0;margin-bottom:8px;">Upgrade required</div>
+            <div style="font-size:14px;color:#8888a0;margin-bottom:20px;">The Marketing Engine is available on paid plans.</div>
+            <a href="/#pricing" style="display:inline-block;background:var(--accent);color:#0a0a0f;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">View Plans →</a>
+          </div>`;
+        btn.style.display = 'none';
+        return;
+      }
+      throw new Error(msg || 'Failed to generate marketing plan.');
+    }
+
+    renderMarketingPlan(data.plans);
+    btn.style.display = 'none';
+
+  } catch (err) {
+    document.getElementById('mkt-results').innerHTML = `<div style="color:#ff4444;font-size:14px;padding:16px;text-align:center;">Failed: ${e(err.message)}</div>`;
+    btn.textContent = 'Try Again →';
+    btn.disabled    = false;
+  }
+}
+
+function renderMarketingPlan(plans) {
+  const container = document.getElementById('mkt-results');
+
+  plans.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'opacity:0;transform:translateY(18px);transition:all 0.5s cubic-bezier(0.22,1,0.36,1);';
+    card.innerHTML = `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+
+        <!-- Channel header -->
+        <div style="padding:24px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Channel ${i+1}</div>
+            <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);">${e(p.channel)}</div>
+          </div>
+          <div style="background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:10px;padding:10px 18px;text-align:center;">
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);">${e(p.monthly_budget)}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:2px;">Monthly Budget</div>
+          </div>
+        </div>
+
+        <!-- 30/60/90 day plan -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border);">
+          ${mktPhasePill('30 Days', p.day_30, 0)}
+          ${mktPhasePill('60 Days', p.day_60, 1)}
+          ${mktPhasePill('90 Days', p.day_90, 2)}
+        </div>
+
+        <!-- Weekly actions + KPIs + Content ideas -->
+        <div style="padding:24px 28px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;">
+
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Weekly Actions</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              ${(p.weekly_actions||[]).map(a=>`
+                <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);line-height:1.4;">
+                  <span style="color:var(--accent);flex-shrink:0;font-weight:700;">→</span>${e(a)}
+                </div>`).join('')}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">KPIs to Track</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              ${(p.kpis||[]).map(k=>`
+                <div style="background:rgba(42,42,53,0.5);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--text);">${e(k)}</div>`).join('')}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Content Ideas</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              ${(p.content_ideas||[]).map(c=>`
+                <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);line-height:1.4;">
+                  <span style="color:var(--accent);flex-shrink:0;">✦</span>${e(c)}
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    container.appendChild(card);
+    setTimeout(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; }, i * 200);
+  });
+
+  setTimeout(() => container.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+
+function mktPhasePill(label, text, idx) {
+  const borders = idx === 1 ? 'border-left:1px solid var(--border);border-right:1px solid var(--border);' : '';
+  return `
+    <div style="padding:20px;${borders}">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">${label}</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.55;">${e(text||'')}</div>
+    </div>`;
+}
+</script>
+</body>
+</html>
