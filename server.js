@@ -430,6 +430,284 @@ app.get('/terms',        (req, res) => res.sendFile(path.join(__dirname, 'terms.
 app.get('/favicon.png',  (req, res) => res.sendFile(path.join(__dirname, 'favicon.png')));
 app.get('/favicon.ico',  (req, res) => res.sendFile(path.join(__dirname, 'favicon.png')));
 
+// ── Blog ──────────────────────────────────────────────────────
+const fs = require('fs');
+const BLOG_DIR = path.join(__dirname, 'blog');
+if (!fs.existsSync(BLOG_DIR)) fs.mkdirSync(BLOG_DIR);
+
+// List all blog posts (sorted newest first)
+app.get('/blog', (req, res) => {
+  const files = fs.readdirSync(BLOG_DIR).filter(f => f.endsWith('.html')).sort().reverse();
+  const posts = files.map(f => {
+    const raw = fs.readFileSync(path.join(BLOG_DIR, f), 'utf8');
+    const titleMatch = raw.match(/<title>([^<]+)<\/title>/);
+    const descMatch  = raw.match(/<meta name="description" content="([^"]+)"/);
+    const dateMatch  = raw.match(/data-date="([^"]+)"/);
+    return {
+      slug: f.replace('.html', ''),
+      title: titleMatch ? titleMatch[1].replace(' — VentureScore Blog', '') : f,
+      description: descMatch ? descMatch[1] : '',
+      date: dateMatch ? dateMatch[1] : '',
+    };
+  });
+
+  res.send(buildBlogIndex(posts));
+});
+
+app.get('/blog/:slug', (req, res) => {
+  const file = path.join(BLOG_DIR, req.params.slug + '.html');
+  if (!fs.existsSync(file)) return res.status(404).sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(file);
+});
+
+// Internal: generate a blog post (called by scheduled task with a secret)
+app.post('/api/generate-blog', async (req, res) => {
+  const secret = req.headers['x-blog-secret'];
+  if (!secret || secret !== process.env.BLOG_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const post = await generateBlogPost();
+    res.json({ ok: true, slug: post.slug, title: post.title });
+  } catch (err) {
+    console.error('Blog generation error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+async function generateBlogPost() {
+  // Pick a rotating topic based on week number so it's different every week
+  const weekNum = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
+  const topics = [
+    'how to validate a business idea before building anything',
+    'the startup ideas most likely to succeed in 2025',
+    'why most business ideas fail and how to avoid it',
+    'how to find your unfair advantage as a first-time founder',
+    'the best niches to start a profitable business in right now',
+    'how to identify a gap in the market and exploit it',
+    'building a business with no money: what actually works',
+    'how to stress-test your startup idea like a VC investor',
+    '10 questions every founder should ask before starting a business',
+    'the difference between a good idea and a fundable business',
+    'market sizing 101: how to know if your idea is big enough',
+    'how competition analysis can save your startup before launch',
+    'pivot or persist: how to know when to change your business idea',
+    'the one metric that predicts whether your startup will survive',
+    'how to write a business plan that actually helps you execute',
+    'go-to-market strategies for founders with zero budget',
+    'side hustle ideas that could become real businesses in 2025',
+    'how to find product-market fit as early as possible',
+    'why your business idea needs a moat — and how to build one',
+    'solopreneur vs startup: which model is right for your idea',
+    'how AI is changing what makes a good business idea in 2025',
+    'the biggest mistakes first-time entrepreneurs make (and how to avoid them)',
+    'how to validate demand for your product without spending a dollar',
+    'what investors look for in early-stage startups',
+    'turning your expertise into a profitable business idea',
+  ];
+  const topic = topics[weekNum % topics.length];
+  const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const slug = dateStr + '-' + topic.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
+
+  const prompt = `You are an expert startup content writer. Write a high-quality, SEO-optimised blog article for the VentureScore blog. VentureScore (venturescore.app) is an AI-powered tool that analyses business ideas and gives founders a detailed score, market analysis, pivot suggestions, and marketing plan.
+
+Topic: "${topic}"
+
+Requirements:
+- Title: catchy, SEO-friendly (include the main keyword naturally)
+- Meta description: 150-160 characters, compelling, includes keyword
+- Word count: 900-1100 words
+- Structure: intro, 4-6 clear H2 sections, conclusion with a CTA to try VentureScore
+- Tone: practical, direct, knowledgeable — like a smart founder writing for other founders
+- Naturally mention VentureScore once or twice in the article body as a useful tool, with a link to https://venturescore.app
+- Include specific, actionable advice — not fluffy generalities
+- End with a short CTA paragraph mentioning VentureScore with a link
+
+Return ONLY valid JSON in this exact shape (no markdown, no code block):
+{
+  "title": "...",
+  "meta_description": "...",
+  "intro": "...",
+  "sections": [
+    { "heading": "...", "body": "..." },
+    ...
+  ],
+  "conclusion": "..."
+}`;
+
+  const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!aiRes.ok) throw new Error('AI request failed: ' + aiRes.status);
+  const aiData = await aiRes.json();
+  const raw = aiData.content?.[0]?.text || '';
+
+  let article;
+  try {
+    const jsonStr = raw.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
+    article = JSON.parse(jsonStr);
+  } catch {
+    throw new Error('Failed to parse AI blog JSON');
+  }
+
+  const html = buildBlogPostHTML(article, slug, dateStr, topic);
+  fs.writeFileSync(path.join(BLOG_DIR, slug + '.html'), html, 'utf8');
+  return { slug, title: article.title };
+}
+
+function buildBlogPostHTML(article, slug, dateStr, topic) {
+  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const formattedDate = new Date(dateStr).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  // Convert markdown-style links to <a> tags
+  const linkify = s => (s||'').replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" style="color:#b8ff57;text-decoration:none;">$1</a>');
+  const paragraphize = s => linkify(s||'').split(/\n\n+/).map(p => `<p>${p.replace(/\n/g,'<br>')}</p>`).join('\n');
+
+  const sectionsHTML = (article.sections||[]).map(s => `
+    <h2>${esc(s.heading)}</h2>
+    ${paragraphize(s.body)}`).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(article.title)} — VentureScore Blog</title>
+<meta name="description" content="${esc(article.meta_description)}">
+<meta property="og:title" content="${esc(article.title)}">
+<meta property="og:description" content="${esc(article.meta_description)}">
+<meta property="og:url" content="https://venturescore.app/blog/${esc(slug)}">
+<meta property="og:type" content="article">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{--bg:#0a0a0f;--surface:#111118;--border:#1e1e28;--text:#f0f0f0;--muted:#8888a0;--accent:#b8ff57;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.75;}
+  nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:20px 40px;background:rgba(10,10,15,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  nav a{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);text-decoration:none;}
+  nav a em{color:var(--accent);font-style:normal;}
+  nav .back{font-size:13px;color:var(--muted);text-decoration:none;font-family:'DM Sans',sans-serif;font-weight:400;}
+  nav .back:hover{color:var(--text);}
+  .hero{background:linear-gradient(135deg,rgba(184,255,87,0.04) 0%,transparent 60%);border-bottom:1px solid var(--border);padding:60px 24px 48px;text-align:center;}
+  .tag{display:inline-block;background:rgba(184,255,87,0.1);border:1px solid rgba(184,255,87,0.25);border-radius:100px;padding:5px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:20px;}
+  h1{font-family:'Syne',sans-serif;font-size:clamp(26px,4vw,44px);font-weight:800;max-width:700px;margin:0 auto 16px;line-height:1.2;}
+  .meta{font-size:13px;color:var(--muted);}
+  .container{max-width:740px;margin:0 auto;padding:60px 24px 100px;}
+  p{color:#c0c0d0;margin-bottom:18px;font-size:16px;}
+  h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin:40px 0 14px;color:var(--text);}
+  a{color:var(--accent);}a:hover{text-decoration:underline;}
+  .cta-box{background:var(--surface);border:1px solid rgba(184,255,87,0.25);border-radius:16px;padding:32px;text-align:center;margin-top:56px;}
+  .cta-box h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:10px;}
+  .cta-box p{color:var(--muted);margin-bottom:20px;font-size:15px;}
+  .cta-btn{display:inline-block;background:var(--accent);color:#0a0a0f;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px;text-decoration:none;}
+  .cta-btn:hover{opacity:0.9;}
+  footer{border-top:1px solid var(--border);padding:32px 40px;text-align:center;font-size:13px;color:var(--muted);}
+  footer a{color:var(--accent);}
+</style>
+</head>
+<body data-date="${dateStr}">
+<nav>
+  <a href="/">Venture<em>Score</em></a>
+  <a href="/blog" class="back">← All Articles</a>
+</nav>
+<div class="hero">
+  <div class="tag">VentureScore Blog</div>
+  <h1>${esc(article.title)}</h1>
+  <div class="meta">${formattedDate} · 5 min read</div>
+</div>
+<div class="container">
+  ${paragraphize(article.intro)}
+  ${sectionsHTML}
+  ${paragraphize(article.conclusion)}
+
+  <div class="cta-box">
+    <h3>Ready to test your business idea?</h3>
+    <p>Stop guessing. Get an AI-powered analysis that scores your idea, identifies threats, suggests pivots, and builds your marketing plan — in under 60 seconds.</p>
+    <a href="https://venturescore.app" class="cta-btn">Analyse My Idea →</a>
+  </div>
+</div>
+<footer>© 2026 VentureScore · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/blog">Blog</a></footer>
+</body>
+</html>`;
+}
+
+function buildBlogIndex(posts) {
+  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cards = posts.length === 0
+    ? '<p style="color:#8888a0;text-align:center;padding:60px 0;">No articles yet — check back soon.</p>'
+    : posts.map(p => {
+        const formattedDate = p.date ? new Date(p.date).toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : '';
+        return `
+        <a href="/blog/${esc(p.slug)}" class="card">
+          <div class="card-tag">Article</div>
+          <h2>${esc(p.title)}</h2>
+          <p>${esc(p.description)}</p>
+          <div class="card-meta">${formattedDate} · 5 min read →</div>
+        </a>`;
+      }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — VentureScore</title>
+<meta name="description" content="Founder insights, startup ideas, and business analysis tips from the VentureScore team.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{--bg:#0a0a0f;--surface:#111118;--border:#1e1e28;--text:#f0f0f0;--muted:#8888a0;--accent:#b8ff57;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:20px 40px;background:rgba(10,10,15,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  nav a{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);text-decoration:none;}
+  nav a em{color:var(--accent);font-style:normal;}
+  nav .back{font-size:13px;color:var(--muted);text-decoration:none;font-family:'DM Sans',sans-serif;font-weight:400;}
+  nav .back:hover{color:var(--text);}
+  .hero{padding:80px 24px 56px;text-align:center;}
+  h1{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,54px);font-weight:800;margin-bottom:14px;}
+  h1 em{color:var(--accent);font-style:normal;}
+  .subtitle{color:var(--muted);font-size:17px;max-width:480px;margin:0 auto;}
+  .grid{max-width:880px;margin:0 auto;padding:0 24px 100px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:24px;}
+  .card{display:block;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;text-decoration:none;transition:border-color 0.2s,transform 0.2s;}
+  .card:hover{border-color:rgba(184,255,87,0.3);transform:translateY(-2px);}
+  .card-tag{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:10px;line-height:1.3;}
+  .card p{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+  .card-meta{font-size:12px;color:var(--accent);font-weight:600;}
+  footer{border-top:1px solid var(--border);padding:32px 40px;text-align:center;font-size:13px;color:var(--muted);}
+  footer a{color:var(--accent);}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/">Venture<em>Score</em></a>
+  <a href="/" class="back">← Home</a>
+</nav>
+<div class="hero">
+  <h1>The <em>Venture</em>Score Blog</h1>
+  <p class="subtitle">Startup insights, idea validation frameworks, and founder resources — updated weekly.</p>
+</div>
+<div class="grid">
+  ${cards}
+</div>
+<footer>© 2026 VentureScore · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></footer>
+</body>
+</html>`;
+}
+
 // ── 404 fallback ──────────────────────────────────────────────
 app.get('/{*path}', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 

@@ -23,3 +23,5 @@ npm-debug.log*
 # One-off scripts (sensitive)
 grant-lifetime.js
 setup-stripe.js
+
+.vercel

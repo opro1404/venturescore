@@ -1069,6 +1069,9 @@ async function run() {
 
 // ── Render ────────────────────────────────────────────────────────
 function render(r) {
+  _lastReport = r;
+  _lastPivotsList = [];
+  _lastMarketingPlanList = [];
   const el = document.getElementById('report');
   el.classList.add('on');
   el.innerHTML = buildHTML(r);
@@ -1351,8 +1354,12 @@ function buildHTML(r) {
     </div>
 
     <!-- BOTTOM CTA -->
-    <div class="bottom-row" style="margin-top:40px;">
+    <div class="bottom-row" style="margin-top:40px;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;">
       <button class="ghost-btn" onclick="reset()">← Analyse Another Idea</button>
+      <button class="ghost-btn" onclick="downloadReport()" style="display:flex;align-items:center;gap:8px;">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.5 1v9M4 7l3.5 3.5L11 7M2 13h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download Report
+      </button>
     </div>
   `;
 }
@@ -1420,6 +1427,11 @@ function reset() {
   _currentReport = null;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// ── DOWNLOAD STATE ────────────────────────────────────────────
+let _lastReport          = null;
+let _lastPivotsList      = [];
+let _lastMarketingPlanList = [];
 
 // ── PIVOT ENGINE ──────────────────────────────────────────────
 let _currentReport   = null;
@@ -1517,6 +1529,7 @@ async function runPivot() {
 }
 
 function renderPivots(pivots) {
+  _lastPivotsList = _lastPivotsList.concat(pivots);
   const container = document.getElementById('pivot-results');
 
   pivots.forEach((p, i) => {
@@ -1637,6 +1650,7 @@ async function runMarketing() {
 }
 
 function renderMarketingPlan(plans) {
+  _lastMarketingPlanList = plans;
   const container = document.getElementById('mkt-results');
 
   plans.forEach((p, i) => {
@@ -1711,6 +1725,207 @@ function mktPhasePill(label, text, idx) {
       <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">${label}</div>
       <div style="font-size:13px;color:var(--text);line-height:1.55;">${e(text||'')}</div>
     </div>`;
+}
+
+// ── DOWNLOAD REPORT ──────────────────────────────────────────────
+function downloadReport() {
+  const r = _lastReport;
+  if (!r) return;
+
+  const idea = document.getElementById('idea')?.value?.trim() || 'Your Business Idea';
+  const dec = (r.verdict?.decision || '').toUpperCase();
+  const verdictColor = dec.includes('KILL') ? '#ff4444' : dec.includes('NEEDS') ? '#ffb400' : '#b8ff57';
+
+  const safeStr = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const section = (title, content) => `
+    <div class="section">
+      <h2>${safeStr(title)}</h2>
+      <div class="content">${content}</div>
+    </div>`;
+  const pill = (label, value) => `<span class="pill"><strong>${safeStr(label)}:</strong> ${safeStr(String(value))}</span>`;
+  const scoreBar = (label, val) => {
+    const color = val < 40 ? '#ff4444' : val < 65 ? '#ff8833' : '#b8ff57';
+    return `<div class="score-row"><span class="score-label">${safeStr(label)}</span><div class="score-track"><div class="score-fill" style="width:${val}%;background:${color};"></div></div><span class="score-num">${val}</span></div>`;
+  };
+
+  // Build pivot section HTML
+  let pivotHtml = '';
+  if (_lastPivotsList.length > 0) {
+    pivotHtml = section('🔄 Pivot Engine', _lastPivotsList.map((p, i) => {
+      const vc = (p.verdict || '').toUpperCase();
+      const pc = vc.includes('STRONG') ? '#b8ff57' : vc.includes('MODERATE') ? '#ffb400' : '#8888a0';
+      return `
+        <div class="pivot-card">
+          <div class="pivot-header">
+            <div>
+              <div class="pivot-num">Pivot ${i + 1}</div>
+              <div class="pivot-name">${safeStr(p.name)}</div>
+            </div>
+            <span class="pivot-verdict" style="color:${pc};border-color:${pc}33;">${safeStr(p.verdict)}</span>
+          </div>
+          <p><strong>Concept:</strong> ${safeStr(p.concept)}</p>
+          <p><strong>Target Market:</strong> ${safeStr(p.target_market)}</p>
+          <p><strong>Why It Works:</strong> ${safeStr(p.why_it_works)}</p>
+          <p><strong>Key Risks:</strong> ${safeStr(p.key_risks)}</p>
+          <p><strong>First Step:</strong> ${safeStr(p.first_step)}</p>
+        </div>`;
+    }).join(''));
+  }
+
+  // Build marketing section HTML
+  let mktHtml = '';
+  if (_lastMarketingPlanList.length > 0) {
+    mktHtml = section('📣 Marketing Engine', _lastMarketingPlanList.map((p, i) => {
+      return `
+        <div class="pivot-card">
+          <div class="pivot-header">
+            <div>
+              <div class="pivot-num">Channel ${i + 1}</div>
+              <div class="pivot-name" style="color:#b8ff57;">${safeStr(p.channel)}</div>
+            </div>
+            <span class="pivot-verdict" style="color:#b8ff57;border-color:rgba(184,255,87,0.3);">${safeStr(p.monthly_budget)}/mo</span>
+          </div>
+          <div class="phase-grid">
+            <div><strong>30 Days</strong><p>${safeStr(p.day_30)}</p></div>
+            <div><strong>60 Days</strong><p>${safeStr(p.day_60)}</p></div>
+            <div><strong>90 Days</strong><p>${safeStr(p.day_90)}</p></div>
+          </div>
+          ${p.weekly_actions?.length ? `<p><strong>Weekly Actions:</strong> ${p.weekly_actions.map(safeStr).join(' · ')}</p>` : ''}
+          ${p.kpis?.length ? `<p><strong>KPIs:</strong> ${p.kpis.map(safeStr).join(' · ')}</p>` : ''}
+          ${p.content_ideas?.length ? `<p><strong>Content Ideas:</strong> ${p.content_ideas.map(safeStr).join(' · ')}</p>` : ''}
+        </div>`;
+    }).join(''));
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VentureScore Report — ${safeStr(idea)}</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0f; color: #f0f0f0; margin: 0; padding: 40px 20px; line-height: 1.6; }
+  .container { max-width: 820px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid #2a2a35; }
+  .brand { font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #8888a0; margin-bottom: 10px; }
+  .brand span { color: #b8ff57; }
+  .idea-title { font-size: 28px; font-weight: 800; color: #f0f0f0; margin-bottom: 16px; }
+  .verdict-box { display: inline-block; padding: 10px 28px; border-radius: 10px; border: 1px solid ${verdictColor}44; background: ${verdictColor}11; font-size: 14px; font-weight: 700; color: ${verdictColor}; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+  .verdict-reason { font-size: 15px; color: #c0c0d0; max-width: 600px; margin: 0 auto; }
+  .section { margin-bottom: 36px; }
+  h2 { font-size: 18px; font-weight: 700; color: #b8ff57; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #2a2a35; }
+  .content { color: #c0c0d0; font-size: 14px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .pill { background: #1a1a24; border: 1px solid #2a2a35; border-radius: 6px; padding: 6px 12px; font-size: 13px; color: #c0c0d0; }
+  .score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .score-label { width: 130px; font-size: 13px; color: #8888a0; flex-shrink: 0; }
+  .score-track { flex: 1; background: #1e1e28; border-radius: 4px; height: 8px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 4px; }
+  .score-num { width: 36px; text-align: right; font-size: 13px; font-weight: 700; color: #f0f0f0; }
+  ul { padding-left: 20px; margin: 8px 0; }
+  li { margin-bottom: 6px; font-size: 14px; }
+  .pivot-card { background: #111118; border: 1px solid #2a2a35; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+  .pivot-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .pivot-num { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8888a0; margin-bottom: 4px; }
+  .pivot-name { font-size: 18px; font-weight: 800; color: #f0f0f0; }
+  .pivot-verdict { font-size: 11px; font-weight: 700; border: 1px solid; border-radius: 6px; padding: 5px 12px; white-space: nowrap; }
+  .phase-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin: 14px 0; }
+  .phase-grid strong { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #b8ff57; display: block; margin-bottom: 6px; }
+  .phase-grid p { font-size: 13px; color: #c0c0d0; margin: 0; }
+  .footer { text-align: center; margin-top: 60px; padding-top: 24px; border-top: 1px solid #2a2a35; font-size: 12px; color: #8888a0; }
+  p { margin: 6px 0; }
+  @media print { body { background: #fff; color: #111; } .pivot-card { background: #f5f5f5; border-color: #ddd; } h2 { color: #333; } .score-track { background: #e0e0e0; } .footer, .brand { color: #888; } .verdict-box { border-color: #ccc; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="brand">Venture<span>Score</span> · Analysis Report</div>
+    <div class="idea-title">${safeStr(idea)}</div>
+    <div class="verdict-box">${safeStr(r.verdict?.decision || '')}</div>
+    <div class="verdict-reason">${safeStr(r.verdict?.one_liner || '')}</div>
+  </div>
+
+  ${section('📊 Scores', `
+    <div class="pills">
+      ${pill('Overall Score', r.overall_score + '/100')}
+      ${pill('Survival', r.survival_score + '/100')}
+      ${pill('Originality', r.originality_score + '/100')}
+      ${pill('Future-Proof', r.futureproof_score + '/100')}
+    </div>
+    ${scoreBar('Survival', r.survival_score)}
+    ${scoreBar('Originality', r.originality_score)}
+    ${scoreBar('Future-Proof', r.futureproof_score)}
+  `)}
+
+  ${section('⚡ Quick Take', `<p>${safeStr(r.verdict?.reasoning || '')}</p>`)}
+
+  ${r.market_size?.total_addressable ? section('📈 Market Size', `
+    <div class="pills">
+      ${pill('TAM', r.market_size.total_addressable)}
+      ${pill('SAM', r.market_size.serviceable)}
+      ${pill('SOM', r.market_size.obtainable)}
+    </div>
+    <p>${safeStr(r.market_size.narrative)}</p>
+  `) : ''}
+
+  ${r.competitive_landscape?.players?.length ? section('🏆 Competitive Landscape', `
+    <ul>${(r.competitive_landscape.players || []).map(p => `<li><strong>${safeStr(p.name)}</strong> — ${safeStr(p.weakness)}</li>`).join('')}</ul>
+    <p><strong>Your Edge:</strong> ${safeStr(r.competitive_landscape.your_edge)}</p>
+  `) : ''}
+
+  ${r.threats?.length ? section('⚠️ Threats', `
+    <ul>${(r.threats || []).map(t => `<li><strong>${safeStr(t.threat)}</strong> (${t.severity}/10) — ${safeStr(t.mitigation)}</li>`).join('')}</ul>
+  `) : ''}
+
+  ${r.moat?.length ? section('🛡️ Moat & Defensibility', `
+    <ul>${(r.moat || []).map(m => `<li><strong>${safeStr(m.type)}:</strong> ${safeStr(m.description)}</li>`).join('')}</ul>
+  `) : ''}
+
+  ${r.go_to_market?.channels?.length ? section('🚀 Go-to-Market', `
+    <ul>${(r.go_to_market.channels || []).map(c => `<li>${safeStr(c)}</li>`).join('')}</ul>
+    ${r.go_to_market.launch_sequence ? `<p><strong>Launch Sequence:</strong> ${safeStr(r.go_to_market.launch_sequence)}</p>` : ''}
+    ${r.go_to_market.hero_metric ? `<p><strong>Hero Metric:</strong> ${safeStr(r.go_to_market.hero_metric)}</p>` : ''}
+  `) : ''}
+
+  ${r.financial_snapshot ? section('💰 Financial Snapshot', `
+    <div class="pills">
+      ${pill('Revenue Model', r.financial_snapshot.revenue_model)}
+      ${pill('Break-even', r.financial_snapshot.break_even_estimate)}
+      ${pill('Startup Cost', r.financial_snapshot.startup_cost_estimate)}
+    </div>
+    <p>${safeStr(r.financial_snapshot.unit_economics_commentary)}</p>
+  `) : ''}
+
+  ${r.execution_roadmap?.length ? section('🗺️ Execution Roadmap', `
+    ${(r.execution_roadmap || []).map(phase => `
+      <div style="margin-bottom:14px;">
+        <strong>${safeStr(phase.phase)}</strong>
+        <ul>${(phase.actions || []).map(a => `<li>${safeStr(a)}</li>`).join('')}</ul>
+      </div>`).join('')}
+  `) : ''}
+
+  ${r.founder_fit ? section('👤 Founder Fit', `
+    <p><strong>Required Skills:</strong> ${(r.founder_fit.required_skills || []).map(safeStr).join(', ')}</p>
+    <p><strong>Hardest Challenge:</strong> ${safeStr(r.founder_fit.hardest_challenge)}</p>
+    <p><strong>Validation Test:</strong> ${safeStr(r.founder_fit.validation_test)}</p>
+  `) : ''}
+
+  ${pivotHtml}
+  ${mktHtml}
+
+  <div class="footer">Generated by <strong>VentureScore</strong> · venturescore.app · ${new Date().toLocaleDateString('en-AU', {day:'numeric',month:'long',year:'numeric'})}</div>
+</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const slug = idea.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g,'').toLowerCase().slice(0, 40) || 'report';
+  a.download = `venturescore-${slug}.html`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 </script>
 </body>
