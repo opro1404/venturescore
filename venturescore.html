@@ -908,9 +908,14 @@ async function initAnalysisAuth() {
   });
   if (res.ok) {
     const { profile } = await res.json();
-    const planMap = { free:'Free', one_time:'One-Time', monthly:'Monthly', lifetime:'Lifetime ♾' };
+    // Redirect free/new users to plan selection
+    if (!profile || profile.plan === 'free') {
+      window.location.href = '/?plans=true';
+      return;
+    }
+    const planMap = { one_time:'One-Time', monthly:'Monthly', lifetime:'Lifetime ♾' };
     const badge = document.getElementById('plan-badge');
-    badge.textContent = planMap[profile?.plan] || 'Free';
+    badge.textContent = planMap[profile?.plan] || '';
     if (profile?.plan === 'lifetime') { badge.style.color='#b8ff57'; badge.style.borderColor='rgba(184,255,87,0.3)'; }
     else if (profile?.plan === 'monthly') { badge.style.color='#b8ff57'; badge.style.borderColor='rgba(184,255,87,0.3)'; }
   }
