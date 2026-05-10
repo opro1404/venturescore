@@ -709,16 +709,19 @@ textarea::placeholder, input::placeholder { color: var(--muted); }
 /* PRICING */
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(3,1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+  overflow: hidden;
 }
 
 .price-card {
   background: rgba(42,42,53,0.4);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 26px 20px;
+  padding: 26px 16px;
   text-align: center;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .price-card.mid {
@@ -739,11 +742,12 @@ textarea::placeholder, input::placeholder { color: var(--muted); }
 
 .price-val {
   font-family: 'Syne', sans-serif;
-  font-size: 38px;
+  font-size: clamp(22px, 3vw, 36px);
   font-weight: 800;
   color: var(--text);
   margin-bottom: 14px;
-  line-height: 1;
+  line-height: 1.1;
+  word-break: break-word;
 }
 
 .price-card.mid .price-val { color: var(--accent); }
@@ -1021,10 +1025,10 @@ async function run() {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 8192,
-        system: 'You are a brutally honest startup analyst. When given a business idea, you analyse it with the cold logic of a VC who has seen 10,000 pitches. You are direct, specific, and never vague. Always return valid JSON only, no markdown, no backticks, no preamble. Be concise — every string field must be under 30 words unless specified otherwise.',
+        system: 'You are a brutally honest startup analyst. When given a business idea, you analyse it with the cold logic of a VC who has seen 10,000 pitches. You are direct, specific, and never vague. Always return valid JSON only, no markdown, no backticks, no preamble.',
         messages: [{
           role: 'user',
-          content: `${userContent}\n\nReturn ONLY a JSON object matching this schema exactly (fill in all fields with real analysis):\n${schema}\n\nRules:\n- summary: max 40 words\n- whats_good: exactly 4 items, max 15 words each\n- whats_bad: exactly 4 items, max 15 words each\n- market_fit: max 40 words\n- competitors: exactly 4 items, description max 15 words each\n- pricing_options: exactly 3 tiers, description max 12 words each\n- biggest_threats: exactly 3 items, description max 20 words each, severity must be "low", "medium", or "high"\n- potential_costs: exactly 6 items, notes max 10 words each\n- marketing_channels: exactly 5 items, why_it_works and starter_idea max 15 words each\n- icp fields: max 15 words each\n- usps: exactly 3 items, max 12 words each\n- verdict.reason: max 25 words\n- verdict.decision: ONLY "BUILD THIS NOW" or "KILL THIS IDEA"\n- All scores 0-100\n- business_timeframe: exactly 5 phases, focus max 15 words, exactly 3 tasks per phase max 12 words each, milestone max 12 words\n- Return raw JSON only. No trailing commas.`
+          content: `${userContent}\n\nReturn ONLY a JSON object matching this schema exactly (fill in all fields with real, specific analysis — not generic advice):\n${schema}\n\nRules:\n- summary: 3-4 sentences covering the core opportunity and key risk, max 60 words\n- whats_good: exactly 4 items, specific and actionable, max 25 words each\n- whats_bad: exactly 4 items, specific fatal flaws, max 25 words each\n- market_fit: 2-3 sentences on PMF evidence or lack thereof, max 60 words\n- competitors: exactly 4 real named competitors, description max 20 words each\n- pricing_options: exactly 3 tiers with realistic prices, description max 18 words each\n- biggest_threats: exactly 3 items, description max 30 words each, severity must be "low", "medium", or "high"\n- potential_costs: exactly 6 items with realistic dollar estimates, notes max 15 words each\n- marketing_channels: exactly 5 items, why_it_works max 20 words, starter_idea max 20 words\n- icp.who max 20 words, icp.pain_point max 25 words, icp.where_to_find_them max 20 words\n- usps: exactly 3 items, specific differentiators, max 20 words each\n- verdict.reason: 2 sentences explaining the score, max 40 words\n- verdict.decision: ONLY "BUILD THIS NOW" or "KILL THIS IDEA"\n- All scores 0-100\n- business_timeframe: exactly 5 phases, focus max 20 words, exactly 3 tasks per phase max 15 words each, milestone max 15 words\n- Return raw JSON only. No trailing commas.`
         }]
       })
     });
