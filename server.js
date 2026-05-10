@@ -424,7 +424,9 @@ app.post('/webhook/stripe', async (req, res) => {
 });
 
 // ── Health check (useful for deployment platforms) ────────────
-app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+app.get('/health',  (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+app.get('/terms',   (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 
 // ── 404 fallback ──────────────────────────────────────────────
 app.get('/{*path}', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
