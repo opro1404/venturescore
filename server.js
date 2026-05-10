@@ -424,9 +424,11 @@ app.post('/webhook/stripe', async (req, res) => {
 });
 
 // ── Health check (useful for deployment platforms) ────────────
-app.get('/health',  (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
-app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
-app.get('/terms',   (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
+app.get('/health',       (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+app.get('/privacy',      (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+app.get('/terms',        (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
+app.get('/favicon.png',  (req, res) => res.sendFile(path.join(__dirname, 'favicon.png')));
+app.get('/favicon.ico',  (req, res) => res.sendFile(path.join(__dirname, 'favicon.png')));
 
 // ── 404 fallback ──────────────────────────────────────────────
 app.get('/{*path}', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
