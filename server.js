@@ -430,34 +430,37 @@ app.get('/terms',        (req, res) => res.sendFile(path.join(__dirname, 'terms.
 app.get('/favicon.png',  (req, res) => res.sendFile(path.join(__dirname, 'favicon.png')));
 app.get('/favicon.ico',  (req, res) => res.sendFile(path.join(__dirname, 'favicon.png')));
 
-// ── Blog ──────────────────────────────────────────────────────
-const fs = require('fs');
-const BLOG_DIR = path.join(__dirname, 'blog');
-if (!fs.existsSync(BLOG_DIR)) fs.mkdirSync(BLOG_DIR);
+// ── Blog (Supabase-backed, serverless-safe) ───────────────────
 
 // List all blog posts (sorted newest first)
-app.get('/blog', (req, res) => {
-  const files = fs.readdirSync(BLOG_DIR).filter(f => f.endsWith('.html')).sort().reverse();
-  const posts = files.map(f => {
-    const raw = fs.readFileSync(path.join(BLOG_DIR, f), 'utf8');
-    const titleMatch = raw.match(/<title>([^<]+)<\/title>/);
-    const descMatch  = raw.match(/<meta name="description" content="([^"]+)"/);
-    const dateMatch  = raw.match(/data-date="([^"]+)"/);
-    return {
-      slug: f.replace('.html', ''),
-      title: titleMatch ? titleMatch[1].replace(' — VentureScore Blog', '') : f,
-      description: descMatch ? descMatch[1] : '',
-      date: dateMatch ? dateMatch[1] : '',
-    };
-  });
+app.get('/blog', async (req, res) => {
+  try {
+    const { data: posts, error } = await supabase
+      .from('blog_posts')
+      .select('slug, title, meta_description, created_at')
+      .order('created_at', { ascending: false });
 
-  res.send(buildBlogIndex(posts));
+    if (error) throw error;
+    res.send(buildBlogIndex(posts || []));
+  } catch (err) {
+    console.error('Blog index error:', err.message);
+    res.send(buildBlogIndex([]));
+  }
 });
 
-app.get('/blog/:slug', (req, res) => {
-  const file = path.join(BLOG_DIR, req.params.slug + '.html');
-  if (!fs.existsSync(file)) return res.status(404).sendFile(path.join(__dirname, 'index.html'));
-  res.sendFile(file);
+app.get('/blog/:slug', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('content_html')
+      .eq('slug', req.params.slug)
+      .single();
+
+    if (error || !data) return res.status(404).sendFile(path.join(__dirname, 'index.html'));
+    res.send(data.content_html);
+  } catch (err) {
+    res.status(404).sendFile(path.join(__dirname, 'index.html'));
+  }
 });
 
 // Internal: generate a blog post (called by scheduled task with a secret)
@@ -560,12 +563,19 @@ Return ONLY valid JSON in this exact shape (no markdown, no code block):
     throw new Error('Failed to parse AI blog JSON');
   }
 
-  const html = buildBlogPostHTML(article, slug, dateStr, topic);
-  fs.writeFileSync(path.join(BLOG_DIR, slug + '.html'), html, 'utf8');
+  const html = buildBlogPostHTML(article, slug, dateStr);
+  const { error } = await supabase.from('blog_posts').upsert({
+    slug,
+    title: article.title,
+    meta_description: article.meta_description || '',
+    content_html: html,
+  });
+  if (error) throw new Error('Supabase insert failed: ' + error.message);
+
   return { slug, title: article.title };
 }
 
-function buildBlogPostHTML(article, slug, dateStr, topic) {
+function buildBlogPostHTML(article, slug, dateStr) {
   const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const formattedDate = new Date(dateStr).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
   // Convert markdown-style links to <a> tags
@@ -647,12 +657,12 @@ function buildBlogIndex(posts) {
   const cards = posts.length === 0
     ? '<p style="color:#8888a0;text-align:center;padding:60px 0;">No articles yet — check back soon.</p>'
     : posts.map(p => {
-        const formattedDate = p.date ? new Date(p.date).toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : '';
+        const formattedDate = (p.created_at || p.date) ? new Date(p.created_at || p.date).toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : '';
         return `
         <a href="/blog/${esc(p.slug)}" class="card">
           <div class="card-tag">Article</div>
           <h2>${esc(p.title)}</h2>
-          <p>${esc(p.description)}</p>
+          <p>${esc(p.meta_description || p.description || '')}</p>
           <div class="card-meta">${formattedDate} · 5 min read →</div>
         </a>`;
       }).join('');
